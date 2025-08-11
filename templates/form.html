@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Batch Rollup Generator (LocalStorage v1.2)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap & Quill CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+
+  <style>
+    /* Base light theme styles */
+    body { 
+      padding:1rem; 
+      font-size:.9rem; 
+      background-color: #ffffff; 
+      color: #212529; 
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .form-section { 
+      padding:.75rem; 
+      border:1px solid #dee2e6; 
+      border-top:none; 
+      background:#f8f9fa; 
+      margin-bottom:1rem; 
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .nav-tabs { 
+      border-bottom: 1px solid #dee2e6; 
+    }
+    .nav-tabs .nav-link { 
+      padding:.4rem .75rem; 
+      font-size:.9rem; 
+      display:flex; 
+      align-items:center; 
+      background-color: #ffffff; 
+      border: 1px solid #dee2e6; 
+      color: #495057; 
+      transition: all 0.3s;
+    }
+    .nav-tabs .nav-link:hover { 
+      background-color: #e9ecef; 
+      border-color: #dee2e6; 
+    }
+    .nav-tabs .nav-link.active { 
+      background-color: #fff; 
+      border-color: #dee2e6 #dee2e6 #fff; 
+      color: #495057; 
+    }
+    .tab-content { 
+      background-color: #ffffff; 
+      border: 1px solid #dee2e6; 
+      border-top: none; 
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .remove-btn { 
+      display:inline-flex; 
+      align-items:center; 
+      justify-content:center; 
+      width:1.25rem; 
+      height:1.25rem; 
+      font-size:.75rem; 
+      margin-left:.4rem; 
+      border-radius:.25rem; 
+    }
+    .btn-sm { 
+      font-size:.8rem; 
+      padding:.25rem .5rem; 
+    }
+    .form-control, .form-control-sm { 
+      font-size:.85rem; 
+      padding:.25rem .4rem; 
+      background-color: #ffffff; 
+      border: 1px solid #ced4da; 
+      color: #495057; 
+      transition: all 0.3s;
+    }
+    .form-control:focus, .form-control-sm:focus { 
+      background-color: #ffffff; 
+      border-color: #80bdff; 
+      color: #495057; 
+      box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); 
+    }
+    .form-label, .form-check-label { 
+      font-size:.9rem; 
+      color: #495057; 
+      transition: color 0.3s;
+    }
+    .form-check-input { 
+      background-color: #ffffff; 
+      border: 1px solid #ced4da; 
+    }
+    .auto-expand { 
+      overflow:hidden; 
+      resize:none; 
+    }
+    .quill-editor { 
+      background:#ffffff; 
+      border:1px solid #ced4da; 
+      border-radius:.25rem; 
+      resize: both; 
+      overflow: auto; 
+      min-height: 120px; 
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .ql-toolbar { 
+      background-color: #f8f9fa; 
+      border-bottom: 1px solid #ced4da; 
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .ql-container { 
+      background-color: #ffffff; 
+      color: #495057; 
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .ql-editor { 
+      color: #495057; 
+      transition: color 0.3s;
+    }
+    .ql-stroke { 
+      stroke: #495057; 
+      transition: stroke 0.3s;
+    }
+    .ql-fill { 
+      fill: #495057; 
+      transition: fill 0.3s;
+    }
+    .ql-picker-label { 
+      color: #495057; 
+      transition: color 0.3s;
+    }
+    .ql-picker-options { 
+      background-color: #ffffff; 
+      border: 1px solid #ced4da; 
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .ql-picker-item { 
+      color: #495057; 
+      transition: color 0.3s;
+    }
+    .ql-picker-item:hover { 
+      background-color: #e9ecef; 
+    }
+    #saveIndicator { 
+      position: fixed; 
+      top: 1rem; 
+      right: 1rem; 
+      opacity: 0; 
+      transition: opacity .5s; 
+      z-index: 1050; 
+    }
+    h2 { 
+      color: #212529; 
+      transition: color 0.3s;
+    }
+    .text-muted { 
+      color: #6c757d !important; 
+    }
+    
+    /* Dark theme styles */
+    body.dark-theme { 
+      background-color: #1a1a1a; 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .form-section { 
+      border:1px solid #444; 
+      background:#2d2d2d; 
+    }
+    body.dark-theme .nav-tabs { 
+      border-bottom: 1px solid #444; 
+    }
+    body.dark-theme .nav-tabs .nav-link { 
+      background-color: #2d2d2d; 
+      border: 1px solid #444; 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .nav-tabs .nav-link:hover { 
+      background-color: #3a3a3a; 
+      border-color: #555; 
+    }
+    body.dark-theme .nav-tabs .nav-link.active { 
+      background-color: #4a4a4a; 
+      border-color: #666; 
+      color: #fff; 
+    }
+    body.dark-theme .tab-content { 
+      background-color: #2d2d2d; 
+      border: 1px solid #444; 
+    }
+    body.dark-theme .btn-outline-secondary { 
+      color: #adb5bd; 
+      border-color: #6c757d; 
+    }
+    body.dark-theme .btn-outline-secondary:hover { 
+      background-color: #6c757d; 
+      border-color: #6c757d; 
+      color: #fff; 
+    }
+    body.dark-theme .btn-outline-primary { 
+      color: #0d6efd; 
+      border-color: #0d6efd; 
+    }
+    body.dark-theme .btn-outline-primary:hover { 
+      background-color: #0d6efd; 
+      border-color: #0d6efd; 
+      color: #fff; 
+    }
+    body.dark-theme .btn-outline-danger { 
+      color: #dc3545; 
+      border-color: #dc3545; 
+    }
+    body.dark-theme .btn-outline-danger:hover { 
+      background-color: #dc3545; 
+      border-color: #dc3545; 
+      color: #fff; 
+    }
+    body.dark-theme .form-control, 
+    body.dark-theme .form-control-sm { 
+      background-color: #3a3a3a; 
+      border: 1px solid #555; 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .form-control:focus, 
+    body.dark-theme .form-control-sm:focus { 
+      background-color: #4a4a4a; 
+      border-color: #0d6efd; 
+      color: #fff; 
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); 
+    }
+    body.dark-theme .form-label, 
+    body.dark-theme .form-check-label { 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .form-check-input { 
+      background-color: #3a3a3a; 
+      border: 1px solid #555; 
+    }
+    body.dark-theme .form-check-input:checked { 
+      background-color: #0d6efd; 
+      border-color: #0d6efd; 
+    }
+    body.dark-theme .quill-editor { 
+      background:#3a3a3a; 
+      border:1px solid #555; 
+    }
+    body.dark-theme .ql-toolbar { 
+      background-color: #2d2d2d; 
+      border-bottom: 1px solid #555; 
+    }
+    body.dark-theme .ql-container { 
+      background-color: #3a3a3a; 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .ql-editor { 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .ql-stroke { 
+      stroke: #e0e0e0; 
+    }
+    body.dark-theme .ql-fill { 
+      fill: #e0e0e0; 
+    }
+    body.dark-theme .ql-picker-label { 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .ql-picker-options { 
+      background-color: #2d2d2d; 
+      border: 1px solid #555; 
+    }
+    body.dark-theme .ql-picker-item { 
+      color: #e0e0e0; 
+    }
+    body.dark-theme .ql-picker-item:hover { 
+      background-color: #3a3a3a; 
+    }
+    body.dark-theme h2 { 
+      color: #fff; 
+    }
+    body.dark-theme .text-muted { 
+      color: #adb5bd !important; 
+    }
+    
+    /* Theme toggle styles */
+    #themeToggle .form-check-label {
+      background-color: rgba(0,0,0,0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(0,0,0,0.1);
+      transition: all 0.3s;
+    }
+    body.dark-theme #themeToggle .form-check-label {
+      background-color: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+
+  <span id="saveIndicator" class="badge bg-success">All changes saved</span>
+  
+  <!-- Theme Toggle -->
+  <div id="themeToggle" style="position: fixed; top: 1rem; left: 1rem; z-index: 1050;">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="darkModeToggle">
+      <label class="form-check-label" for="darkModeToggle" style="font-size: 0.8rem;">
+        🌙 Dark Mode
+      </label>
+    </div>
+  </div>
+
+  <div class="container-sm mx-auto" style="max-width:800px;">
+    <h2 class="text-center mb-4">Batch Weekly Rollup</h2>
+
+    <form id="mainForm" method="post" action="/generate" class="mb-4">
+
+      <div class="row g-2 align-items-end mb-3">
+        <div class="col-auto">
+          <label class="form-label" for="globalDate">Rollup Date</label>
+          <input type="date" id="globalDate" name="Date" class="form-control form-control-sm" required>
+        </div>
+        <div class="col-auto">
+          <div class="form-check">
+            <input class="form-check-input form-check-input-sm" type="checkbox" id="globalNosend" name="GlobalNosend">
+            <label class="form-check-label ms-1" for="globalNosend">Include nosend as last CC</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <button type="button" id="backupBtn" class="btn btn-outline-secondary btn-sm" onclick="doBackup()">📥 Backup</button>
+        </div>
+
+        <div class="col-auto">
+          <button type="button" id="restoreBtn" class="btn btn-outline-primary btn-sm">📤 Restore</button>
+          <input type="file" id="restoreFile" accept=".json" style="display:none;">
+        </div>
+        <div class="col text-end">
+          <button type="button" id="addBtn" class="btn btn-primary btn-sm mt-2">+ Add Customer</button>
+        </div>
+      </div>
+
+      <ul class="nav nav-tabs" id="customerTabs" role="tablist"></ul>
+      <div class="tab-content" id="customerTabsContent"></div>
+
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-success btn-sm">Generate All (.eml ZIP)</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script>
+  
+  // Define backup function first, globally
+  function doBackup() {
+    console.log("=== BACKUP FUNCTION CALLED ===");
+    
+    // Get ALL localStorage data
+    const allData = {};
+    let itemCount = 0;
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      const value = localStorage.getItem(key);
+      allData[key] = value;
+      itemCount++;
+      console.log(`BACKING UP: ${key} = ${value.substring(0, 100)}...`);
+    }
+    
+    // Add metadata
+    allData.backup_timestamp = new Date().toISOString();
+    allData.backup_version = "1.0";
+    
+    console.log(`Total localStorage items: ${itemCount}`);
+
+    // Create and download JSON file
+    const jsonStr = JSON.stringify(allData, null, 2);
+    console.log("JSON string length:", jsonStr.length);
+    
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rollup_backup_${new Date().toISOString().slice(0,19).replace(/[:-]/g, '')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log("=== DOWNLOAD TRIGGERED ===");
+    alert("Backup downloaded successfully!");
+  }
+
+
+
+  (function(){
+    // Theme management
+    function initTheme() {
+      const darkModeToggle = document.getElementById('darkModeToggle');
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      
+      if (savedTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+        darkModeToggle.checked = true;
+      }
+      
+      darkModeToggle.addEventListener('change', function() {
+        if (this.checked) {
+          document.body.classList.add('dark-theme');
+          localStorage.setItem('theme', 'dark');
+        } else {
+          document.body.classList.remove('dark-theme');
+          localStorage.setItem('theme', 'light');
+        }
+      });
+    }
+
+    const form = document.getElementById("mainForm"),
+          gd   = document.getElementById("globalDate"),
+          gs   = document.getElementById("globalNosend"),
+          tabsEl    = document.getElementById("customerTabs"),
+          contentEl = document.getElementById("customerTabsContent"),
+          saveInd   = document.getElementById("saveIndicator");
+
+    let quillEditors = {},
+        indices = [];
+    
+    // Safe way to load indices - more robust
+    try {
+      const storedIndices = localStorage.getItem("custIndices");
+      console.log("Loading custIndices from localStorage:", storedIndices);
+      
+      if (storedIndices) {
+        const parsed = JSON.parse(storedIndices);
+        console.log("Parsed custIndices:", parsed);
+        
+        if (Array.isArray(parsed)) {
+          indices = parsed.filter(n => typeof n === 'number' && n > 0);
+          console.log("Filtered indices:", indices);
+        } else {
+          console.log("custIndices is not an array, using default");
+          indices = [1];
+        }
+      } else {
+        console.log("No custIndices found, using default");
+        indices = [1];
+      }
+    } catch (error) {
+      console.log("Error loading indices, using default:", error);
+      indices = [1];
+    }
+
+    // Fallback check
+    if (!indices.length) {
+      console.log("No valid indices found, adding default [1]");
+      indices = [1];
+    }
+    
+    console.log("Final indices array:", indices);
+
+    function flashSaved(){
+      saveInd.style.opacity = 1;
+      clearTimeout(window._saveTimer);
+      window._saveTimer = setTimeout(()=> saveInd.style.opacity = 0, 1000);
+    }
+
+    function saveField(name, value){
+      localStorage.setItem(name, value);
+      if (name === "custIndices"){
+        localStorage.setItem("custIndices", JSON.stringify(indices));
+      }
+      flashSaved();
+      const payload = {};
+      document.querySelectorAll("[name]").forEach(el=>{
+        if (quillEditors[el.name]) {
+          payload[el.name] = quillEditors[el.name].root.innerHTML;
+        } else {
+          payload[el.name] = el.value;
+        }
+      });
+      fetch("/save-settings", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      }).catch(console.error);
+    }
+
+    function autoExpand(el){
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+
+    function initQuill(){
+      document.querySelectorAll(".quill-editor").forEach(div=>{
+        const name = div.dataset.target;
+        const htmlContent = localStorage.getItem(name) || "";
+        div.innerHTML = htmlContent;
+        const editor = new Quill(div, { theme:"snow" });
+        editor.root.innerHTML = htmlContent;
+        editor.on("text-change", ()=> saveField(name, editor.root.innerHTML));
+        editor.root.addEventListener("blur", ()=> saveField(name, editor.root.innerHTML));
+        quillEditors[name] = editor;
+      });
+    }
+
+    function render(){
+      // v1.1 change: reset editors so each tab reloads content
+      quillEditors = {};
+      tabsEl.innerHTML = "";
+      contentEl.innerHTML = "";
+
+      indices.forEach((i, idx)=>{
+        const active = idx===0?" active":"",
+              tabId  = `tab-${i}`,
+              rawName= localStorage.getItem(`CustomerName_${i}`)||"",
+              custName = rawName.trim()||`Customer ${i}`;
+
+        tabsEl.insertAdjacentHTML("beforeend",`
+        <li class="nav-item" role="presentation">
+          <button class="nav-link${active}" id="btn-${i}"
+                  data-bs-toggle="tab" data-bs-target="#${tabId}"
+                  type="button" role="tab">
+            ${custName}
+            <span class="remove-btn badge bg-danger" data-index="${i}">×</span>
+          </button>
+        </li>`);
+
+        const asc = localStorage.getItem(`ASContacts_${i}`)||"",
+              atc = localStorage.getItem(`AccountTeamContacts_${i}`)||"",
+              adc = localStorage.getItem(`AdditionalContacts_${i}`)||"",
+              dtp = localStorage.getItem(`DiscussionTopics_${i}`)||"",
+              am  = localStorage.getItem(`AccountManagement_${i}`)||"",
+              de  = localStorage.getItem(`DesignatedEngineer_${i}`)||"",
+              sn  = localStorage.getItem(`SpecialNotes_${i}`)||"",
+              sig = localStorage.getItem(`Signature_${i}`)||"";
+
+        contentEl.insertAdjacentHTML("beforeend",`
+        <div class="tab-pane fade${active?" show active":""}"
+             id="${tabId}" role="tabpanel">
+          <div class="form-section">
+
+            <div class="mb-3">
+              <label class="form-label">Customer Name</label>
+              <input type="text" name="CustomerName_${i}"
+                     class="form-control form-control-sm js-name"
+                     value="${rawName}">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">AS Contacts <small>(;)</small></label>
+              <textarea name="ASContacts_${i}"
+                        class="form-control form-control-sm js-txt">${asc}</textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Account Team Contacts <small>(;)</small></label>
+              <textarea name="AccountTeamContacts_${i}"
+                        class="form-control form-control-sm js-txt">${atc}</textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Additional Contacts <small>(;)</small></label>
+              <textarea name="AdditionalContacts_${i}"
+                        class="form-control form-control-sm js-txt">${adc}</textarea>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center mb-2">
+                <input type="text" name="GeneralTitle_${i}" 
+                       class="form-control form-control-sm js-txt" 
+                       value="${localStorage.getItem(`GeneralTitle_${i}`)||'General'}"
+                       style="width: 200px; font-weight: 500;">
+                <span class="text-muted ms-2" style="font-size: 0.8rem;">← Section title</span>
+              </div>
+              <div data-target="DiscussionTopics_${i}"
+                   class="quill-editor"></div>
+              <input type="hidden" name="DiscussionTopics_${i}">
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center mb-2">
+                <input type="text" name="AccountMgmtTitle_${i}" 
+                       class="form-control form-control-sm js-txt" 
+                       value="${localStorage.getItem(`AccountMgmtTitle_${i}`)||'Account Management'}"
+                       style="width: 200px; font-weight: 500;">
+                <span class="text-muted ms-2" style="font-size: 0.8rem;">← Section title</span>
+              </div>
+              <div data-target="AccountManagement_${i}"
+                   class="quill-editor"></div>
+              <input type="hidden" name="AccountManagement_${i}">
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center mb-2">
+                <input type="text" name="DesignatedEngTitle_${i}" 
+                       class="form-control form-control-sm js-txt" 
+                       value="${localStorage.getItem(`DesignatedEngTitle_${i}`)||'Designated Engineer(s)'}"
+                       style="width: 200px; font-weight: 500;">
+                <span class="text-muted ms-2" style="font-size: 0.8rem;">← Section title</span>
+              </div>
+              <div data-target="DesignatedEngineer_${i}"
+                   class="quill-editor"></div>
+              <input type="hidden" name="DesignatedEngineer_${i}">
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center mb-2">
+                <input type="text" name="SpecialNotesTitle_${i}" 
+                       class="form-control form-control-sm js-txt" 
+                       value="${localStorage.getItem(`SpecialNotesTitle_${i}`)||'Special Notes'}"
+                       style="width: 200px; font-weight: 500;">
+                <span class="text-muted ms-2" style="font-size: 0.8rem;">← Section title</span>
+              </div>
+              <div data-target="SpecialNotes_${i}"
+                   class="quill-editor"></div>
+              <input type="hidden" name="SpecialNotes_${i}">
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label">Custom Sections</label>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCustomSection(${i})">+ Add Section</button>
+              </div>
+              <div id="customSections_${i}"></div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Signature</label>
+              <div data-target="Signature_${i}"
+                   class="quill-editor"></div>
+              <input type="hidden" name="Signature_${i}">
+            </div>
+
+          </div>
+        </div>`);
+      });
+
+      // textareas
+      document.querySelectorAll(".js-txt").forEach(ta=>{
+        ta.addEventListener("blur", ()=> saveField(ta.name, ta.value));
+        autoExpand(ta);
+        ta.addEventListener("input", ()=> autoExpand(ta));
+      });
+
+      // name inputs
+      document.querySelectorAll(".js-name").forEach(inp=>{
+        inp.addEventListener("input", ()=>{
+          saveField(inp.name, inp.value);
+          const idx = inp.name.split("_")[1];
+          const nameVal = inp.value.trim()||`Customer ${idx}`;
+          document.getElementById(`btn-${idx}`).firstChild.textContent = nameVal;
+        });
+      });
+
+      // confirmation uses actual customer name
+      document.querySelectorAll(".remove-btn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const idx = +btn.dataset.index;
+          const nameVal = localStorage.getItem(`CustomerName_${idx}`) || `Customer ${idx}`;
+          if (!confirm(`Are you sure you want to remove ${nameVal} and lose all its data?`)) {
+            return;
+          }
+          ["CustomerName","ASContacts","AccountTeamContacts","AdditionalContacts",
+           "DiscussionTopics","AccountManagement","DesignatedEngineer","SpecialNotes",
+           "GeneralTitle","AccountMgmtTitle","DesignatedEngTitle","SpecialNotesTitle","Signature"
+          ].forEach(pref=> localStorage.removeItem(`${pref}_${idx}`));
+          
+          // Also remove custom sections for this customer
+          for (let j = 1; j <= 20; j++) {
+            localStorage.removeItem(`CustomSection${j}Title_${idx}`);
+            localStorage.removeItem(`CustomSection${j}_${idx}`);
+          }
+          localStorage.removeItem(`customSectionCount_${idx}`);
+          
+          indices = indices.filter(x=>x!==idx);
+          saveField("custIndices", JSON.stringify(indices));
+          render();
+        });
+      });
+
+      initQuill();
+      
+      // Initialize custom sections for each customer
+      indices.forEach(i => {
+        initCustomSections(i);
+      });
+    }
+
+    function initCustomSections(customerId) {
+      const container = document.getElementById(`customSections_${customerId}`);
+      if (!container) return;
+      
+      // Load existing custom sections from localStorage
+      let sectionCount = parseInt(localStorage.getItem(`customSectionCount_${customerId}`) || '0');
+      
+      for (let j = 1; j <= sectionCount; j++) {
+        const title = localStorage.getItem(`CustomSection${j}Title_${customerId}`) || '';
+        const content = localStorage.getItem(`CustomSection${j}_${customerId}`) || '';
+        if (title || content) {
+          addCustomSectionHTML(customerId, j, title);
+        }
+      }
+    }
+
+    function addCustomSection(customerId) {
+      let sectionCount = parseInt(localStorage.getItem(`customSectionCount_${customerId}`) || '0');
+      sectionCount++;
+      localStorage.setItem(`customSectionCount_${customerId}`, sectionCount.toString());
+      
+      addCustomSectionHTML(customerId, sectionCount, '');
+    }
+
+    function addCustomSectionHTML(customerId, sectionNumber, titleValue) {
+      const container = document.getElementById(`customSections_${customerId}`);
+      
+      const sectionDiv = document.createElement('div');
+      sectionDiv.className = 'mb-3 custom-section';
+      sectionDiv.id = `customSection_${customerId}_${sectionNumber}`;
+      
+      sectionDiv.innerHTML = `
+        <div class="d-flex align-items-center mb-2">
+          <input type="text" name="CustomSection${sectionNumber}Title_${customerId}" 
+                 class="form-control form-control-sm js-txt" 
+                 placeholder="Section title (e.g., Action Items)"
+                 value="${titleValue}">
+          <button type="button" class="btn btn-sm btn-outline-danger ms-2" 
+                  onclick="removeCustomSection(${customerId}, ${sectionNumber})">×</button>
+        </div>
+        <div data-target="CustomSection${sectionNumber}_${customerId}" class="quill-editor"></div>
+        <input type="hidden" name="CustomSection${sectionNumber}_${customerId}">
+      `;
+      
+      container.appendChild(sectionDiv);
+      
+      // Initialize the new Quill editor
+      const quillDiv = sectionDiv.querySelector('.quill-editor');
+      const name = quillDiv.dataset.target;
+      const htmlContent = localStorage.getItem(name) || "";
+      const editor = new Quill(quillDiv, { theme:"snow" });
+      editor.root.innerHTML = htmlContent;
+      editor.on("text-change", ()=> {
+        saveField(name, editor.root.innerHTML);
+        console.log("Saved custom section content:", name, editor.root.innerHTML); // Debug
+      });
+      quillEditors[name] = editor;
+      
+      // Add event listener for title input
+      const titleInput = sectionDiv.querySelector('input[type="text"]');
+      titleInput.addEventListener("blur", ()=> {
+        saveField(titleInput.name, titleInput.value);
+        console.log("Saved custom section title:", titleInput.name, titleInput.value); // Debug
+      });
+      titleInput.addEventListener("input", ()=> {
+        saveField(titleInput.name, titleInput.value);
+        console.log("Saved custom section title:", titleInput.name, titleInput.value); // Debug
+      });
+    }
+
+    function removeCustomSection(customerId, sectionNumber) {
+      const sectionDiv = document.getElementById(`customSection_${customerId}_${sectionNumber}`);
+      if (sectionDiv) {
+        // Remove from localStorage
+        localStorage.removeItem(`CustomSection${sectionNumber}Title_${customerId}`);
+        localStorage.removeItem(`CustomSection${sectionNumber}_${customerId}`);
+        
+        // Remove from quillEditors
+        delete quillEditors[`CustomSection${sectionNumber}_${customerId}`];
+        
+        // Remove from DOM
+        sectionDiv.remove();
+      }
+    }
+
+    window.addCustomSection = addCustomSection;
+    window.removeCustomSection = removeCustomSection;
+
+    // add customer
+    document.getElementById("addBtn").addEventListener("click", ()=>{
+      // Find the next available customer ID that doesn't have data
+      let next = 1;
+      while (next <= 100) { // Safety limit
+        // Check if this ID already exists in our indices
+        if (!indices.includes(next)) {
+          // Double-check that this ID doesn't have any data in localStorage
+          const hasData = localStorage.getItem(`CustomerName_${next}`) || 
+                         localStorage.getItem(`ASContacts_${next}`) ||
+                         localStorage.getItem(`AccountTeamContacts_${next}`);
+          if (!hasData) {
+            break; // Found a truly empty slot
+          }
+        }
+        next++;
+      }
+      
+      indices.push(next);
+      saveField("custIndices", JSON.stringify(indices));
+      render();
+      const tab = document.getElementById(`btn-${next}`);
+      if(tab) new bootstrap.Tab(tab).show();
+    });
+
+    // on submit, copy Quill → hidden
+    form.addEventListener("submit", ()=>{
+      Object.entries(quillEditors).forEach(([name, ed])=>{
+        document.querySelector(`input[name="${name}"]`).value = ed.root.innerHTML;
+      });
+    });
+
+    // initialize globals
+    gd.value   = localStorage.getItem("Date")||"";
+    gs.checked = localStorage.getItem("GlobalNosend")==="true";
+    gd.addEventListener("change", ()=> saveField("Date", gd.value));
+    gs.addEventListener("change", ()=> saveField("GlobalNosend", gs.checked));
+
+    // Restore functionality - FIXED VERSION
+    document.getElementById("restoreBtn").addEventListener("click", ()=> {
+      document.getElementById("restoreFile").click();
+    });
+
+    document.getElementById("restoreFile").addEventListener("change", (e)=> {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const backupData = JSON.parse(event.target.result);
+          console.log("=== RESTORE STARTED ===");
+          console.log("Backup data keys:", Object.keys(backupData));
+          
+          // Clear existing localStorage data including new fields
+          const keysToRemove = [];
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('Customer') || key.startsWith('AS') || 
+                key.startsWith('Account') || key.startsWith('Additional') ||
+                key.startsWith('Discussion') || key.startsWith('Designated') ||
+                key.startsWith('Special') || key.startsWith('Custom') || key.startsWith('Signature') ||
+                key.startsWith('General') || key.startsWith('SpecialNotes') ||
+                key === 'custIndices' || key === 'Date' || key === 'GlobalNosend' ||
+                key.includes('customSectionCount') || key.includes('Title')) {
+              keysToRemove.push(key);
+            }
+          });
+          
+          console.log("Removing keys:", keysToRemove);
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+
+          // Restore data to localStorage
+          Object.keys(backupData).forEach(key => {
+            if (key !== 'backup_timestamp' && key !== 'backup_version') {
+              if (key === 'custIndices') {
+                // Handle custIndices specially - it might be a string or array
+                let restoredIndices;
+                if (typeof backupData[key] === 'string') {
+                  restoredIndices = JSON.parse(backupData[key]);
+                } else {
+                  restoredIndices = backupData[key];
+                }
+                localStorage.setItem(key, JSON.stringify(restoredIndices));
+                indices = restoredIndices;
+                console.log("Restored indices from custIndices:", indices);
+              } else {
+                localStorage.setItem(key, backupData[key]);
+              }
+            }
+          });
+
+          // Additional fix: if custIndices wasn't in backup, rebuild it from available customer data
+          if (!backupData.custIndices) {
+            const foundIndices = new Set();
+            Object.keys(backupData).forEach(key => {
+              if (key.startsWith('CustomerName_')) {
+                const idx = parseInt(key.split('_')[1]);
+                if (!isNaN(idx)) {
+                  foundIndices.add(idx);
+                }
+              }
+            });
+            indices = Array.from(foundIndices).sort((a, b) => a - b);
+            localStorage.setItem('custIndices', JSON.stringify(indices));
+            console.log("Rebuilt indices from customer data:", indices);
+          }
+
+          // Also scan for any customer data that might exist and ensure those indices are included
+          const additionalIndices = new Set(indices);
+          Object.keys(backupData).forEach(key => {
+            const match = key.match(/^(CustomerName|ASContacts|AccountTeamContacts)_(\d+)$/);
+            if (match) {
+              const idx = parseInt(match[2]);
+              if (!isNaN(idx) && backupData[key]) { // Only if there's actual data
+                additionalIndices.add(idx);
+              }
+            }
+          });
+          
+          const finalIndices = Array.from(additionalIndices).sort((a, b) => a - b);
+          if (finalIndices.length !== indices.length) {
+            indices = finalIndices;
+            localStorage.setItem('custIndices', JSON.stringify(indices));
+            console.log("Updated indices with additional found customers:", indices);
+          }
+
+          console.log("=== FINAL RESTORE STATE ===");
+          console.log("Final indices:", indices);
+          console.log("Total restored keys:", Object.keys(backupData).length - 2); // -2 for metadata
+
+          alert("Settings restored successfully! Refreshing page...");
+          window.location.reload();
+          
+        } catch (error) {
+          console.error("Restore error:", error);
+          alert("Error: Invalid backup file format");
+        }
+      };
+      
+      reader.readAsText(file);
+      e.target.value = ""; // Reset file input
+    });
+
+    // Initialize theme before everything else
+    initTheme();
+
+    render();
+  })();
+  </script>
+</body>
+</html>
